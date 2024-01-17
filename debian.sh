@@ -5,6 +5,9 @@ DIRNAME=$(dirname "$SCRIPT_PATH")
 [ -f ./.zshrc ] && ln -sf $DIRNAME/.zshrc ~/.zshrc
 [ -f ./.tigrc ] && ln -sf $DIRNAME/.tigrc ~/.tigrc
 
+[ -f ~/.profile ] && grep -q "export EDITOR=nvim" ~/.profile || echo "export EDITOR=nvim" >> ~/.profile
+[ -f ~/.profile ] && grep -q "export GIT_EDITOR=nvim" ~/.profile || echo "export GIT_EDITOR=nvim" >> ~/.profile
+
 apt install -y git && \
 apt install -y tig && \
 apt install -y curl && \
