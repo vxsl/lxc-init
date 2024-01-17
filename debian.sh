@@ -3,9 +3,8 @@
 SCRIPT_PATH=$(readlink -f "$0")
 DIRNAME=$(dirname "$SCRIPT_PATH")
 [ -f ./.zshrc ] && ln -sf $DIRNAME/.zshrc ~/.zshrc
+[ -f ./.tigrc ] && ln -sf $DIRNAME/.tigrc ~/.tigrc
 
-apt update -y && \
-apt upgrade -y && \
 apt install -y git && \
 apt install -y tig && \
 apt install -y curl && \

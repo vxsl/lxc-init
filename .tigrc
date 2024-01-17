@@ -1,0 +1,31 @@
+bind main T :toggle date
+bind refs D !?git branch -D %(branch)
+bind refs B !git rebase %(branch)
+bind main B !git rebase -i %(commit)
+bind generic p !git pull
+bind generic P !git push
+bind generic 9 !@sh -c "git rev-parse --short %(commit) | xclip -selection c"
+bind generic + !git commit --amend
+
+bind generic f !"git fetch --prune; git fetch --all;"
+
+bind refs Y !git checkout -b %(branch)-bak %(branch)
+
+# bind stage <Ctrl-I> !git rebase --con // TODO choose a binding for this
+
+bind status U @toggle-git-stage-all
+
+set main-view	= line-number:no,interval=5 id:no date:relative-compact,format="%Y-%m-%d" author:no commit-title:yes,graph,refs,overflow=no
+
+# set wrap-lines = yes
+
+set refresh-mode = periodic
+set refresh-interval = 1
+
+color cursor black magenta bold
+
+set diff-highlight = true
+
+# https://github.com/jonas/tig/issues/219#issuecomment-406817763
+# compare commit in log view with its parent per http://stackoverflow.com/questions/436362/shorthand-for-diff-of-git-commit-with-its-parent
+bind generic <Ctrl-O> >git difftool -y %(commit)
