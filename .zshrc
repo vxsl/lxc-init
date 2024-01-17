@@ -21,6 +21,7 @@ source ~/.zsh/antigen.zsh
 
 # wakatime
 antigen theme romkatv/powerlevel10k
+antigen bundle unixorn/fzf-zsh-plugin@main
 antigen bundle zsh-users/zsh-autosuggestions
 antigen bundle jeffreytse/zsh-vi-mode
 antigen bundle zsh-users/zsh-syntax-highlighting
