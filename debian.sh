@@ -8,6 +8,7 @@ DIRNAME=$(dirname "$SCRIPT_PATH")
 [ -f ~/.profile ] && grep -q "export EDITOR=nvim" ~/.profile || echo "export EDITOR=nvim" >> ~/.profile
 [ -f ~/.profile ] && grep -q "export GIT_EDITOR=nvim" ~/.profile || echo "export GIT_EDITOR=nvim" >> ~/.profile
 
+apt update && \
 apt install -y git && \
 apt install -y tig && \
 apt install -y curl && \
