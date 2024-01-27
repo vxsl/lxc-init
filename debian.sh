@@ -9,12 +9,12 @@ DIRNAME=$(dirname "$SCRIPT_PATH")
 [ -f ~/.profile ] && grep -q "export GIT_EDITOR=nvim" ~/.profile || echo "export GIT_EDITOR=nvim" >> ~/.profile
 
 sudo apt update && \
-sudo apt install -y git && \
-sudo apt install -y tig && \
-sudo apt install -y curl && \
-sudo apt install -y zsh && \
-sudo apt install -y neovim && \
-sudo apt install -y autojump && \
+sudo apt install -yq git && \
+sudo apt install -yq tig && \
+sudo apt install -yq curl && \
+sudo apt install -yq zsh && \
+sudo apt install -yq neovim && \
+sudo apt install -yq autojump && \
 sudo apt clean && \
 mkdir -p ~/.zsh/fzf && \
 ([ -d ~/.zsh/fzf/.git ] || git clone https://github.com/junegunn/fzf ~/.zsh/fzf) && \
