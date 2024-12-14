@@ -1,5 +1,7 @@
 #!/bin/bash
 
+timedatectl set-timezone America/Vancouver
+
 SCRIPT_PATH=$(readlink -f "$0")
 DIRNAME=$(dirname "$SCRIPT_PATH")
 [ -f ./.zshrc ] && ln -sf $DIRNAME/.zshrc ~/.zshrc
