@@ -14,8 +14,6 @@ function zvm_after_init() {
     source ~/.zsh/fzf/shell/completion.zsh
 }
 
-# NOTE: install autojump-zsh from system pkg manager
-
 # use antigen
 source ~/.zsh/antigen.zsh
 
@@ -135,7 +133,7 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-source /usr/share/autojump/autojump.zsh
+source ~/.zsh/autojump/bin/autojump.zsh
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 if [ -f "$HOME/.p10k.zsh" ]; then
