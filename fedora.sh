@@ -56,6 +56,7 @@ $install neovim && \
 
 # install and configure zsh
 $install curl zsh && \
+clone_if_not_exists https://github.com/romkatv/powerlevel10k.git $HOME/.zsh/powerlevel10k && \
 clone_if_not_exists https://github.com/wting/autojump $HOME/.zsh/autojump && \
 mkdir -p ~/.zsh/fzf && \
 ([ -d ~/.zsh/fzf/.git ] || git clone https://github.com/junegunn/fzf ~/.zsh/fzf) && \
