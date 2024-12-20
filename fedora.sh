@@ -23,6 +23,7 @@ update="sudo dnf update"
 install="sudo dnf install -yq"
 gdm_conf="/etc/gdm/custom.conf"
 desktop_file="/usr/share/xsessions/xmonad.desktop"
+dnf_conf="/etc/dnf/dnf.conf"
 SCRIPT_PATH=$(readlink -f "$0")
 DIRNAME=$(dirname "$SCRIPT_PATH")
 
@@ -45,6 +46,8 @@ else
     exit 1
 fi && \
 
+# dnf init
+grep -q "^assumeyes=True" "$dnf_conf" || sudo sed -i '/^\[main\]/a assumeyes=True' "$dnf_conf" || echo -e "[main]\nassumeyes=True" | sudo tee -a "$dnf_conf" && \
 
 # init git
 $install git tig && \
