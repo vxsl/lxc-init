@@ -80,7 +80,6 @@ function gcm() {
     git commit --message="$msg"
 }
 
-alias code="code-insiders"
 alias ls="lsd --icon never"
 alias dnf="sudo dnf"
 alias pacman="sudo pacman"

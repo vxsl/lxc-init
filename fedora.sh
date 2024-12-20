@@ -102,15 +102,19 @@ pip3 install pulsectl && \
 clone_if_not_exists https://github.com/florentc/xob /usr/local/src/xob --sudo && \
 cd /usr/local/src/xob && \
 $install autoreconf aclocal libX11-devel libXrender-devel libconfig-devel && \
-sudo make && sudo make install && \
+if [ ! command xob >/dev/null 2>&1 ]; then
+    sudo make && sudo make install
+fi && \
 
 # install xidlehook
 $install cargo && \
 clone_if_not_exists https://github.com/jD91mZM2/xidlehook $HOME/dev/xidlehook && \
-cd $HOME/dev/xidlehook && \
-cargo build --release --bins && \
-mkdir -p $HOME/.cargo/bin &&
-cp $HOME/dev/xidlehook/target/release/xidlehook $HOME/.cargo/bin && \
+if [ ! -f "$HOME/.cargo/bin/xidlehook" ]; then
+    cd $HOME/dev/xidlehook && \
+    cargo build --release --bins && \
+    mkdir -p $HOME/.cargo/bin &&
+    cp $HOME/dev/xidlehook/target/release/xidlehook $HOME/.cargo/bin
+fi && \
 
 # install snap, misc. snaps
 $install snapd && \
