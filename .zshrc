@@ -81,6 +81,7 @@ function gcm() {
 }
 
 alias ls="lsd --icon never"
+alias copy="xclip -selection clipboard"
 alias dnf="sudo dnf"
 alias pacman="sudo pacman"
 alias mv="mv -vn"
