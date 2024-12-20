@@ -120,9 +120,9 @@ fi && \
 
 # install snap, misc. snaps
 $install snapd && \
-sudo ln -s /var/lib/snapd/snap /snap && \
-snap install obsidian --classic && \
-snap install code --classic && \
+sudo ln -sf /var/lib/snapd/snap /snap && \
+sudo snap install obsidian --classic && \
+sudo snap install code --classic && \
 
 # source .profile
 source $HOME/.profile && \
