@@ -93,6 +93,8 @@ clone_if_not_exists https://github.com/vxsl/bin $HOME/bin && \
 # install dotfiles
 $install dunst nitrogen arandr xautolock picom xsetroot xclip && \
 clone_if_not_exists https://github.com/vxsl/.dotfiles $HOME/.dotfiles && \
+cd $HOME/.dotfiles && \
+git submodule update --init --recursive
 $install stow && \
 cd $HOME/.dotfiles && ./setup-stow.sh && \
 
