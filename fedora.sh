@@ -69,8 +69,8 @@ if [ "$(getent passwd $(whoami) | cut -d: -f7)" != "$(which zsh)" ]; then
 fi && \
 
 
-# install and configure xmonad, xmobar
-$install xmobar fastfetch && \
+# install and configure xmonad, xmobar, dmenu
+$install xmobar fastfetch dmenu && \
 clone_if_not_exists https://github.com/vxsl/.xmonad $HOME/.xmonad && \
 cd $HOME/.xmonad && \
 git config --local status.showUntrackedFiles no && \
@@ -91,7 +91,7 @@ if [ ! -f "$desktop_file" ]; then
 fi && \
 
 # install convenience scripts
-$install xdotool && \
+$install xdotool pactl && \
 clone_if_not_exists https://github.com/vxsl/bin $HOME/bin && \
 
 # install dotfiles
