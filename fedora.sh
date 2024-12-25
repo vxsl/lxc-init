@@ -95,7 +95,7 @@ $install xdotool pactl && \
 clone_if_not_exists https://github.com/vxsl/bin $HOME/bin && \
 
 # install dotfiles
-$install dunst nitrogen arandr xautolock picom xsetroot xclip && \
+$install dunst nitrogen arandr xautolock picom xsetroot xclip xwininfo && \
 clone_if_not_exists https://github.com/vxsl/.dotfiles $HOME/.dotfiles && \
 cd $HOME/.dotfiles && \
 git submodule update --init --recursive
