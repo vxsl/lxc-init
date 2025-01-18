@@ -42,10 +42,13 @@ if ! systemctl is-active --quiet greetd; then
     # Set boot target to CLI and disable display managers
     echo "Configuring boot target..."
 
-    if [ ! command cargo >/dev/null 2>&1 ]; then
+    if ! command -v cargo &>/dev/null; then
+        echo no cargo
         if [ ! -f "$HOME/.cargo/env" ]; then
+            echo 1
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         fi
+        echo 2
         . $HOME/.cargo/env
     fi && \
 
@@ -59,7 +62,7 @@ if ! systemctl is-active --quiet greetd; then
     
 
     for dm in gdm3 lightdm sddm; do
-        systemctl disable --now $dm 2>/dev/null || true
+        sudo systemctl disable --now $dm 2>/dev/null || true
     done
 
 fi
