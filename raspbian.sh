@@ -60,21 +60,21 @@ if ! systemctl get-default | grep -q 'multi-user.target' || \
 
     # Create or update desktop environment selection script
     cat << 'EOF' > /usr/local/bin/choose-de
-    #!/bin/bash
-    echo "Select a desktop environment:"
-    wm_options=("startlxde" "xmonad" "i3" "awesome" "openbox" "sway" "fluxbox" "gnome-session" "startkde" "startxfce4" "cinnamon" "mate-session")
+#!/bin/bash
+echo "Select a desktop environment:"
+wm_options=("startlxde" "xmonad" "i3" "awesome" "openbox" "sway" "fluxbox" "gnome-session" "startkde" "startxfce4" "cinnamon" "mate-session")
 
-    for i in "${!wm_options[@]}"; do
-        echo "$((i + 1))) ${wm_options[$i]}"
-    done
+for i in "${!wm_options[@]}"; do
+    echo "$((i + 1))) ${wm_options[$i]}"
+done
 
-    read -p "Choice: " choice
-    if (( choice >= 1 && choice <= ${#wm_options[@]} )); then
-        exec ${wm_options[$((choice - 1))]}
-    else
-        echo "Invalid choice. Exiting."
-        exit 1
-    fi
+read -p "Choice: " choice
+if (( choice >= 1 && choice <= ${#wm_options[@]} )); then
+    exec ${wm_options[$((choice - 1))]}
+else
+    echo "Invalid choice. Exiting."
+    exit 1
+fi
 EOF
     chmod +x /usr/local/bin/choose-de
 
