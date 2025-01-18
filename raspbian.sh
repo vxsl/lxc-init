@@ -37,10 +37,10 @@ if [ "$1" = "--init" ]; then
 fi && \
 
 # use gdm
-sudo systemctl disable --now lightdm && \
-sudo systemctl disable --now sddm && \
 $install gdm3 && \
 sudo systemctl enable --now gdm3 && \
+sudo systemctl disable --now lightdm || true && \
+sudo systemctl disable --now sddm || true && \
 
 # install X, disable Wayland
 $install xauth && \
