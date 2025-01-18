@@ -49,7 +49,8 @@ if ! systemctl is-active --quiet greetd; then
         . $HOME/.cargo/env
     fi && \
 
-    clone_if_not_exists https://github.com/apognu/tuigreet /usr/local/src/tuigreet && \
+    mkdir -p $HOME/src && \
+    clone_if_not_exists https://github.com/apognu/tuigreet $HOME/src/tuigreet && \
     cd /usr/local/src/tuigreet && \
     cargo build --release && \
     mv target/release/tuigreet /usr/local/bin/tuigreet && \
