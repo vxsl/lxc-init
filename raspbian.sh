@@ -36,8 +36,14 @@ if [ "$1" = "--init" ]; then
     $upgrade
 fi && \
 
+# use gdm
+systemctl disable --now lightdm && \
+systemctl disable --now sddm && \
+$install gdm3 && \
+systemctl enable --now gdm3 && \
+
 # install X, disable Wayland
-$install xorg-x11-server-Xorg && \
+$install xauth && \
 if [[ -f "$gdm_conf" ]]; then
     sudo sed -i '/^#*WaylandEnable/c\WaylandEnable=false' "$gdm_conf"
 else
