@@ -36,6 +36,10 @@ if [ "$1" = "--init" ]; then
     $upgrade
 fi && \
 
+# use nala for cleaner apt output 
+$install nala && \
+install="nala install -yq" && \
+
 # use gdm
 $install gdm3 && \
 sudo systemctl enable --now gdm3 && \
