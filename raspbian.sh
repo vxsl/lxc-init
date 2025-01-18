@@ -42,15 +42,57 @@ if [ "$1" = "--init" ]; then
     $upgrade
 fi && \
 
-# use gdm
-current_dm=$(systemctl show -p ActiveState --value display-manager.service)
-active_dm=$(basename "$(readlink /etc/systemd/system/display-manager.service)")
-if [[ $current_dm != "active" || $active_dm != "gdm.service" ]]; then
-    sudo systemctl enable --now gdm3 && \
-    sudo systemctl disable --now lightdm || true && \
-    sudo systemctl disable --now sddm || true && \
-    echo "Installed GDM. Rerun the script."
-    exit 0
+# Check if WM config has already been done
+if ! systemctl get-default | grep -q 'multi-user.target' || \
+   systemctl is-enabled --quiet gdm3 || \
+   systemctl is-enabled --quiet lightdm || \
+   systemctl is-enabled --quiet sddm || \
+   [[ -f /usr/local/bin/choose-de ]] && \
+   [[ -f /etc/skel/.xinitrc ]]; then
+
+    # Set boot target to CLI and disable display managers
+    echo "Configuring system..."
+    systemctl set-default multi-user.target
+    for dm in gdm3 lightdm sddm; do
+        systemctl disable --now $dm 2>/dev/null || true
+    done
+
+    # Install xinit if not already installed
+    command -v xinit &>/dev/null || apt update && apt install -y xinit
+
+    # Create or update desktop environment selection script
+    cat << 'EOF' > /usr/local/bin/choose-de
+    #!/bin/bash
+    echo "Select a desktop environment:"
+    wm_options=("startlxde" "xmonad" "i3" "awesome" "openbox" "sway" "fluxbox" "gnome-session" "startkde" "startxfce4" "cinnamon" "mate-session")
+
+    for i in "${!wm_options[@]}"; do
+        echo "$((i + 1))) ${wm_options[$i]}"
+    done
+
+    read -p "Choice: " choice
+    if (( choice >= 1 && choice <= ${#wm_options[@]} )); then
+        exec ${wm_options[$((choice - 1))]}
+    else
+        echo "Invalid choice. Exiting."
+        exit 1
+    fi
+EOF
+    chmod +x /usr/local/bin/choose-de
+
+    # Create or ensure .xinitrc exists for users
+    if [[ ! -f /etc/skel/.xinitrc ]]; then
+        echo "exec /usr/local/bin/choose-de" > /etc/skel/.xinitrc
+    fi
+
+    # Ensure users' .xinitrc exists
+    for user_home in /home/*; do
+        [[ -d "$user_home" ]] && cp /etc/skel/.xinitrc "$user_home/.xinitrc" && chown "$(basename "$user_home"):$(basename "$user_home")" "$user_home/.xinitrc"
+    done
+
+    echo "Configuration complete. System will now boot to CLI."
+    echo "Use 'startx' after logging in to choose and start a desktop environment."
+
 fi
 
 # install X, disable Wayland
