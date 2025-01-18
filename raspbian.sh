@@ -25,7 +25,7 @@ clone_if_not_exists() {
 name="Kyle Grimsrud-Manz"
 email="hi@kylegrimsrudma.nz"
 upgrade="sudo apt upgrade"
-install="sudo apt install -yq"
+install="sudo apt install -qq -y"
 gdm_conf="/etc/gdm/custom.conf"
 desktop_file="/usr/share/xsessions/xmonad.desktop"
 dnf_conf="/etc/dnf/dnf.conf"
@@ -41,10 +41,6 @@ if [ "$1" = "--init" ]; then
     timedatectl set-timezone "$2" && \
     $upgrade
 fi && \
-
-# use nala for cleaner apt output 
-$install nala && \
-install="nala install -yq" && \
 
 # use gdm
 $install gdm3 && \
