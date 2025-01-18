@@ -51,7 +51,7 @@ if ! systemctl get-default | grep -q 'multi-user.target' || \
    [[ -f /etc/skel/.xinitrc ]]; then
 
     # Set boot target to CLI and disable display managers
-    echo "Configuring system..."
+    echo "Configuring boot target..."
     systemctl set-default multi-user.target
     for dm in gdm3 lightdm sddm; do
         systemctl disable --now $dm 2>/dev/null || true
