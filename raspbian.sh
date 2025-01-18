@@ -43,16 +43,13 @@ if ! systemctl is-active --quiet greetd; then
     echo "Configuring boot target..."
 
     if ! command -v cargo &>/dev/null; then
-        echo no cargo
         if [ ! -f "$HOME/.cargo/env" ]; then
-            echo 1
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         fi
-        echo 2
         . $HOME/.cargo/env
     fi && \
 
-    clone_if_not_exists https://github.com/apognu/tuigreet /usr/local/src/tuigreet --sudo && \
+    clone_if_not_exists https://github.com/apognu/tuigreet /usr/local/src/tuigreet && \
     cd /usr/local/src/tuigreet && \
     cargo build --release && \
     mv target/release/tuigreet /usr/local/bin/tuigreet && \
