@@ -18,8 +18,8 @@ clone_if_not_exists() {
 
 name="Kyle Grimsrud-Manz"
 email="hi@kylegrimsrudma.nz"
-update="sudo dnf update"
-install="sudo dnf install -yq"
+upgrade="sudo apt upgrade"
+install="sudo apt install -y"
 gdm_conf="/etc/gdm/custom.conf"
 desktop_file="/usr/share/xsessions/xmonad.desktop"
 dnf_conf="/etc/dnf/dnf.conf"
@@ -33,7 +33,7 @@ if [ "$1" = "--init" ]; then
         exit 1
     fi && \
     timedatectl set-timezone "$2" && \
-    $update
+    $upgrade
 fi && \
 
 # install X, disable Wayland
