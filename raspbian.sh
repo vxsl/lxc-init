@@ -43,10 +43,15 @@ if [ "$1" = "--init" ]; then
 fi && \
 
 # use gdm
-$install gdm3 && \
-sudo systemctl enable --now gdm3 && \
-sudo systemctl disable --now lightdm || true && \
-sudo systemctl disable --now sddm || true && \
+current_dm=$(systemctl show -p ActiveState --value display-manager.service)
+active_dm=$(basename "$(readlink /etc/systemd/system/display-manager.service)")
+if [[ $current_dm != "active" || $active_dm != "gdm.service" ]]; then
+    sudo systemctl enable --now gdm3 && \
+    sudo systemctl disable --now lightdm || true && \
+    sudo systemctl disable --now sddm || true && \
+    echo "Installed GDM. Rerun the script."
+    exit 0
+fi
 
 # install X, disable Wayland
 $install xauth && \
