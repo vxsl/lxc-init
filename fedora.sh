@@ -18,7 +18,6 @@ clone_if_not_exists() {
 
 name="Kyle Grimsrud-Manz"
 email="hi@kylegrimsrudma.nz"
-timezone="America/Vancouver"
 update="sudo dnf update"
 install="sudo dnf install -yq"
 gdm_conf="/etc/gdm/custom.conf"
@@ -33,7 +32,7 @@ if [ "$1" = "--init" ]; then
         echo "Please provide a timezone, ex. 'America/Vancouver'"
         exit 1
     fi && \
-    timedatectl set-timezone "$timezone" && \
+    timedatectl set-timezone "$2" && \
     $update
 fi && \
 
