@@ -37,10 +37,7 @@ if [ "$1" = "--init" ]; then
 fi && \
 
 # Check if WM config has already been done
-if ! systemctl get-default | grep -q 'multi-user.target' || \
-   systemctl is-active --quiet gdm3 || \
-   systemctl is-active --quiet lightdm || \
-   systemctl is-active --quiet sddm; then
+if ! systemctl is-active --quiet greetd; then
 
     # Set boot target to CLI and disable display managers
     echo "Configuring boot target..."
