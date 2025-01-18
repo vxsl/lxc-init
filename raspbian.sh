@@ -53,8 +53,7 @@ if ! systemctl get-default | grep -q 'multi-user.target' || \
     # Set boot target to CLI and disable display managers
     echo "Configuring boot target..."
 
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh && \
-    $install cargo && \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
     clone_if_not_exists https://github.com/apognu/tuigreet /usr/local/src/tuigreet --sudo && \
     cd /usr/local/src/tuigreet && \
     cargo build --release && \
