@@ -19,7 +19,7 @@ clone_if_not_exists() {
 name="Kyle Grimsrud-Manz"
 email="hi@kylegrimsrudma.nz"
 upgrade="sudo apt upgrade"
-install="sudo apt install -y"
+install="sudo apt install -yq"
 gdm_conf="/etc/gdm/custom.conf"
 desktop_file="/usr/share/xsessions/xmonad.desktop"
 dnf_conf="/etc/dnf/dnf.conf"
