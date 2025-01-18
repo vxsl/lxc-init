@@ -47,7 +47,7 @@ if ! systemctl get-default | grep -q 'multi-user.target' || \
 
     if [ ! command cargo >/dev/null 2>&1 ]; then
         if [ ! -f "$HOME/.cargo/env" ]; then
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
         fi
         . $HOME/.cargo/env
     fi && \
