@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# Ensure the script is run with sudo
-if [[ $EUID -ne 0 ]]; then
-  echo "This script must be run with sudo. Exiting..."
-  exit 1
-fi
-
 clone_if_not_exists() {
     local repo_url="$1"
     local target_dir="${2:-$(basename "$repo_url" .git)}"
@@ -48,12 +42,16 @@ if ! systemctl get-default | grep -q 'multi-user.target' || \
    systemctl is-active --quiet lightdm || \
    systemctl is-active --quiet sddm; then
 
-   
-
     # Set boot target to CLI and disable display managers
     echo "Configuring boot target..."
 
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+    if [ ! command cargo >/dev/null 2>&1 ]; then
+        if [ ! -f "$HOME/.cargo/env" ]; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+        fi
+        . $HOME/.cargo/env
+    fi && \
+
     clone_if_not_exists https://github.com/apognu/tuigreet /usr/local/src/tuigreet --sudo && \
     cd /usr/local/src/tuigreet && \
     cargo build --release && \
