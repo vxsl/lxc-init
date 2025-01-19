@@ -70,6 +70,7 @@ if ! command -v emptty >/dev/null 2>&1; then
         sudo systemctl disable --now $dm 2>/dev/null || true
     done
     sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
+    sudo touch /etc/systemd/system/getty@tty1.service.d/override.conf 
     sudo cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<EOF
 [Service]
 ExecStart=
