@@ -39,21 +39,23 @@ if [ "$1" = "--init" ]; then
 fi && \
 
 # install go
-ARCH=$(uname -m)
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-[[ $ARCH == "x86_64" ]] && ARCH="amd64"
-[[ $ARCH == "aarch64" ]] && ARCH="arm64" || { echo "Unsupported architecture: $ARCH"; exit 1; }
+if [ ! command go >/dev/null 2>&1 ]; then
+    ARCH=$(uname -m)
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    [[ $ARCH == "x86_64" ]] && ARCH="amd64"
+    [[ $ARCH == "aarch64" ]] && ARCH="arm64" || { echo "Unsupported architecture: $ARCH"; exit 1; }
 
-URL=$(curl -s https://go.dev/VERSION?m=text | head -n1 | xargs -I{} echo "https://go.dev/dl/{}.$OS-$ARCH.tar.gz")
-[[ $(curl -Isf $URL) ]] || { echo "Invalid URL for $OS-$ARCH"; exit 1; }
+    URL=$(curl -s https://go.dev/VERSION?m=text | head -n1 | xargs -I{} echo "https://go.dev/dl/{}.$OS-$ARCH.tar.gz")
+    [[ $(curl -Isf $URL) ]] || { echo "Invalid URL for $OS-$ARCH"; exit 1; }
 
-TMP_DIR=$(mktemp -d)
-curl -L $URL -o $TMP_DIR/go.tar.gz
-sudo tar -C /usr/local -xzf $TMP_DIR/go.tar.gz
-rm -rf $TMP_DIR
+    TMP_DIR=$(mktemp -d)
+    curl -L $URL -o $TMP_DIR/go.tar.gz
+    sudo tar -C /usr/local -xzf $TMP_DIR/go.tar.gz
+    rm -rf $TMP_DIR
 
-[[ ! $(grep "/usr/local/go/bin" $PATH) ]] && export PATH=$PATH:/usr/local/go/bin 
-go version
+    [[ ! $(grep "/usr/local/go/bin" $PATH) ]] && export PATH=$PATH:/usr/local/go/bin 
+    go version
+fi
 
 # install emptty
 clone_if_not_exists https://github.com/tvrzna/emptty /usr/local/src/emptty --sudo 
