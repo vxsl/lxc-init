@@ -39,7 +39,7 @@ if [ "$1" = "--init" ]; then
 fi 
 
 # install go
-[[ ! $(grep "/usr/local/go/bin" $PATH) ]] && export PATH=$PATH:/usr/local/go/bin 
+[[ ! "$PATH" =~ "/usr/local/go/bin" ]] && export PATH="$PATH:/usr/local/go/bin"
 if ! command -v go >/dev/null 2>&1; then
     echo "Installing golang"
     ARCH=$(uname -m)
