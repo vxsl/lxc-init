@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+trap 'rc=$?; echo "error code $rc at $LINENO"; exit $rc' ERR
 
 clone_if_not_exists() {
     local repo_url="$1"
