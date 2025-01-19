@@ -117,8 +117,41 @@ if [ "$(getent passwd $(whoami) | cut -d: -f7)" != "$(which zsh)" ]; then
 fi 
 
 
+# install fastfetch
+$install cmake
+clone_if_not_exists https://github.com/fastfetch-cli/fastfetch /usr/local/src/fastfetch --sudo
+cd /usr/local/src/fastfetch
+$install \
+    libvulkan1 \
+    libxcb-randr0-dev libxrandr-dev libxcb1-dev libx11-dev \
+    libwayland-client0 \
+    libdrm-dev \
+    libglib2.0-dev \
+    libdconf1 \
+    libmagickcore-6.q16-6-extra imagemagick \
+    libchafa0 \
+    zlib1g-dev \
+    libdbus-1-dev \
+    libegl1-mesa-dev libglx-dev libosmesa6-dev \
+    ocl-icd-libopencl1 \
+    libxfconf-0-dev \
+    libsqlite3-dev \
+    libelf-dev \
+    librpm-dev \
+    libpulse-dev \
+    libddcutil0
+mkdir -p build
+cd build
+cmake ..
+cmake --build . --target fastfetch
+
+# Install development headers if needed
+echo "Installing development headers for DirectX (if needed)..."
+sudo apt install -y directx-headers || echo "DirectX-Headers might not be available on this platform."
+
+
 # install and configure xmonad, xmobar, dmenu
-$install xmobar fastfetch dmenu 
+$install xmobar dmenu 
 clone_if_not_exists https://github.com/vxsl/.xmonad $HOME/.xmonad 
 cd $HOME/.xmonad 
 git config --local status.showUntrackedFiles no 
