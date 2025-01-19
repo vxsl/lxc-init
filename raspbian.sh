@@ -17,7 +17,6 @@ clone_if_not_exists() {
     fi
 }
 
-
 name="Kyle Grimsrud-Manz"
 email="hi@kylegrimsrudma.nz"
 upgrade="sudo apt upgrade"
@@ -27,6 +26,34 @@ desktop_file="/usr/share/xsessions/xmonad.desktop"
 dnf_conf="/etc/dnf/dnf.conf"
 SCRIPT_PATH=$(readlink -f "$0")
 DIRNAME=$(dirname "$SCRIPT_PATH")
+
+command_exists() {
+    command -v $1 >/dev/null 2>&1
+}
+
+install_if_not_exists() {
+    local pkg
+    for el in "$@"; do
+        local pkg_name
+
+        if [[ "$el" == *:* ]]; then
+            # pkg:cmd
+            pkg_name="${el%%:*}"
+            local cmd_name="${el##*:}"
+            exists=$(command_exists "$cmd_name"; echo $?)
+        else
+            pkg_name=$el
+            exists=$(dpkg -l "$1" | grep -q ^ii; echo $?)
+        fi
+
+        if $exists; then
+            echo "$pkg already installed."
+        else
+            echo "installing $pkg..."
+            $install "$pkg"
+        fi
+    done
+}
 
 # optional init routine
 if [ "$1" = "--init" ]; then
@@ -38,11 +65,11 @@ if [ "$1" = "--init" ]; then
     $upgrade
 fi 
 
-$install curl
+$install_if_not_exists curl
 
 # install go
 [[ ! "$PATH" =~ "/usr/local/go/bin" ]] && export PATH="$PATH:/usr/local/go/bin"
-if ! command -v go >/dev/null 2>&1; then
+if ! command_exists go; then
     echo "Installing golang"
     ARCH=$(uname -m)
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -64,9 +91,9 @@ fi
 # install emptty
 clone_if_not_exists https://github.com/tvrzna/emptty /usr/local/src/emptty --sudo 
 cd /usr/local/src/emptty 
-if ! command -v emptty >/dev/null 2>&1; then
+if ! command_exists emptty; then
     echo "Installing emptty"
-    $install gcc libpam0g-dev libx11-dev
+    $install_if_not_exists gcc libpam0g-dev libx11-dev
     sudo make build
     sudo make install-all
     for dm in gdm gdm3 lightdm sddm; do
@@ -86,7 +113,7 @@ fi
 
 
 # install X, disable Wayland
-$install xauth 
+$install_if_cmd_not_exists xauth 
 # if [[ -f "$gdm_conf" ]]; then
 #     sudo sed -i '/^#*WaylandEnable/c\WaylandEnable=false' "$gdm_conf"
 # else
@@ -98,15 +125,15 @@ $install xauth
 # grep -q "^assumeyes=True" "$dnf_conf" || sudo sed -i '/^\[main\]/a assumeyes=True' "$dnf_conf" || echo -e "[main]\nassumeyes=True" | sudo tee -a "$dnf_conf" 
 
 # init git
-$install git tig 
+$install_if_cmd_not_exists git tig 
 git config --global user.email "$email" 
 git config --global user.name "$name" 
 
 # install neovim (config in dotfiles step)
-$install neovim 
+$install_if_cmd_not_exists neovim:nvim
 
 # install and configure zsh
-$install zsh 
+$install_if_cmd_not_exists zsh 
 clone_if_not_exists https://github.com/romkatv/powerlevel10k.git $HOME/.zsh/powerlevel10k 
 clone_if_not_exists https://github.com/wting/autojump $HOME/.zsh/autojump 
 mkdir -p ~/.zsh/fzf 
@@ -118,11 +145,11 @@ fi
 
 
 # install fastfetch
-$install cmake
+$install_if_not_exists cmake
 clone_if_not_exists https://github.com/fastfetch-cli/fastfetch /usr/local/src/fastfetch --sudo
 cd /usr/local/src/fastfetch
-if ! command -v fastfetch >/dev/null 2>&1; then
-    $install \
+if ! command_exists fastfetch; then
+    $install_if_not_exists \
         libvulkan1 \
         libxcb-randr0-dev libxrandr-dev libxcb1-dev libx11-dev \
         libwayland-client0 \
@@ -147,19 +174,16 @@ if ! command -v fastfetch >/dev/null 2>&1; then
     sudo cmake --build . --target fastfetch
 fi
 
-# Install development headers if needed
-echo "Installing development headers for DirectX (if needed)..."
-sudo apt install -y directx-headers || echo "DirectX-Headers might not be available on this platform."
 
 
 # install and configure xmonad, xmobar, dmenu
-$install xmobar dmenu 
+$install_if_not_exists xmobar dmenu 
 clone_if_not_exists https://github.com/vxsl/.xmonad $HOME/.xmonad 
 cd $HOME/.xmonad 
 git config --local status.showUntrackedFiles no 
 clone_if_not_exists https://github.com/xmonad/xmonad $HOME/.xmonad/xmonad 
 clone_if_not_exists https://github.com/xmonad/xmonad-contrib $HOME/.xmonad/xmonad-contrib 
-$install libX11-devel libXft-devel libXinerama-devel libXrandr-devel libXScrnSaver-devel gcc gcc-c++ gmp gmp-devel make ncurses ncurses-compat-libs xz perl pkg-config 
+$install_if_not_exists libX11-devel libXft-devel libXinerama-devel libXrandr-devel libXScrnSaver-devel gcc gcc-c++ gmp gmp-devel make ncurses ncurses-compat-libs xz perl pkg-config 
 if [ ! -f "$HOME/.ghcup/bin/stack" ]; then
     curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
 fi 
@@ -174,29 +198,29 @@ if [ ! -f "$desktop_file" ]; then
 fi 
 
 # install convenience scripts
-$install xdotool pactl 
+$install_if_not_exists xdotool pactl 
 clone_if_not_exists https://github.com/vxsl/bin $HOME/bin 
 
 # install dotfiles
-$install dunst nitrogen arandr xautolock picom xsetroot xclip xwininfo parallel 
+$install_if_not_exists dunst nitrogen arandr xautolock picom xsetroot xclip xwininfo parallel 
 clone_if_not_exists https://github.com/vxsl/.dotfiles $HOME/.dotfiles 
 cd $HOME/.dotfiles 
 git submodule update --init --recursive
-$install stow 
+$install_if_not_exists stow 
 cd $HOME/.dotfiles && ./setup-stow.sh 
 
 # install xob and other volume stuff
-$install python3-pip 
+$install_if_not_exists python3-pip
 pip3 install pulsectl 
 clone_if_not_exists https://github.com/florentc/xob /usr/local/src/xob --sudo 
 cd /usr/local/src/xob 
-$install autoreconf aclocal libX11-devel libXrender-devel libconfig-devel 
-if ! command -v xob >/dev/null 2>&1; then
+if ! command_exists xob; then
+    $install_if_not_exists autoreconf aclocal libX11-devel libXrender-devel libconfig-devel 
     sudo make && sudo make install
 fi 
 
 # install xidlehook
-$install cargo 
+$install_if_not_exists cargo 
 clone_if_not_exists https://github.com/jD91mZM2/xidlehook $HOME/dev/xidlehook 
 if [ ! -f "$HOME/.cargo/bin/xidlehook" ]; then
     cd $HOME/dev/xidlehook 
@@ -206,7 +230,7 @@ if [ ! -f "$HOME/.cargo/bin/xidlehook" ]; then
 fi 
 
 # install snap, misc. snaps
-$install snapd 
+$install_if_not_exists snapd:snap 
 sudo ln -sf /var/lib/snapd/snap /snap 
 sudo snap install obsidian --classic 
 sudo snap install code --classic 
@@ -215,7 +239,7 @@ sudo snap install code --classic
 source $HOME/.profile 
 
 # install misc. gui progs
-$install firefox alacritty 
+$install_if_not_exists firefox alacritty 
 
 # go home
 cd $HOME 
