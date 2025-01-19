@@ -38,6 +38,8 @@ if [ "$1" = "--init" ]; then
     $upgrade
 fi 
 
+$install curl
+
 # install go
 [[ ! "$PATH" =~ "/usr/local/go/bin" ]] && export PATH="$PATH:/usr/local/go/bin"
 if ! command -v go >/dev/null 2>&1; then
@@ -93,7 +95,7 @@ $install xauth
 # fi 
 
 # dnf init
-grep -q "^assumeyes=True" "$dnf_conf" || sudo sed -i '/^\[main\]/a assumeyes=True' "$dnf_conf" || echo -e "[main]\nassumeyes=True" | sudo tee -a "$dnf_conf" 
+# grep -q "^assumeyes=True" "$dnf_conf" || sudo sed -i '/^\[main\]/a assumeyes=True' "$dnf_conf" || echo -e "[main]\nassumeyes=True" | sudo tee -a "$dnf_conf" 
 
 # init git
 $install git tig 
@@ -104,14 +106,14 @@ git config --global user.name "$name"
 $install neovim 
 
 # install and configure zsh
-$install curl zsh 
+$install zsh 
 clone_if_not_exists https://github.com/romkatv/powerlevel10k.git $HOME/.zsh/powerlevel10k 
 clone_if_not_exists https://github.com/wting/autojump $HOME/.zsh/autojump 
 mkdir -p ~/.zsh/fzf 
 ([ -d ~/.zsh/fzf/.git ] || git clone https://github.com/junegunn/fzf ~/.zsh/fzf) 
 ([ -f ~/.zsh/antigen.zsh ] || curl -L git.io/antigen > ~/.zsh/antigen.zsh) 
 if [ "$(getent passwd $(whoami) | cut -d: -f7)" != "$(which zsh)" ]; then
-    chsh -s $(which zsh)
+    sudo chsh -s $(which zsh)
 fi 
 
 
