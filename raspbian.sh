@@ -39,7 +39,7 @@ if [ "$1" = "--init" ]; then
 fi && \
 
 # install go
-if [ ! command go >/dev/null 2>&1 ]; then
+if ! command go >/dev/null 2>&1; then
     ARCH=$(uname -m)
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
     [[ $ARCH == "x86_64" ]] && ARCH="amd64"
@@ -60,8 +60,8 @@ fi
 # install emptty
 clone_if_not_exists https://github.com/tvrzna/emptty /usr/local/src/emptty --sudo 
 cd /usr/local/src/emptty 
-$install gcc libpam0g-dev libx11-dev
-if [ ! command emptty >/dev/null 2>&1 ]; then
+if ! command emptty >/dev/null 2>&1; then
+    $install gcc libpam0g-dev libx11-dev
     sudo make build
     sudo make install-all
     for dm in gdm gdm3 lightdm sddm; do
@@ -182,7 +182,7 @@ pip3 install pulsectl && \
 clone_if_not_exists https://github.com/florentc/xob /usr/local/src/xob --sudo && \
 cd /usr/local/src/xob && \
 $install autoreconf aclocal libX11-devel libXrender-devel libconfig-devel && \
-if [ ! command xob >/dev/null 2>&1 ]; then
+if ! command xob >/dev/null 2>&1; then
     sudo make && sudo make install
 fi && \
 
