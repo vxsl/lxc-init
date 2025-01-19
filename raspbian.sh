@@ -65,15 +65,15 @@ if [ ! command emptty >/dev/null 2>&1 ]; then
     for dm in gdm gdm3 lightdm sddm; do
         sudo systemctl disable --now $dm 2>/dev/null || true
     done
-    mkdir -p /etc/systemd/system/getty@tty1.service.d
-    cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<EOF
+    sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
+    sudo cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<EOF
 [Service]
 ExecStart=
 ExecStart=/usr/bin/emptty
 EOF
-    systemctl daemon-reload
-    systemctl restart getty@tty1
-    raspi-config nonint do_boot_behaviour B2
+    sudo systemctl daemon-reload
+    sudo systemctl restart getty@tty1
+    sudo raspi-config nonint do_boot_behaviour B2
 fi
 
 
