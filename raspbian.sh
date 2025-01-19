@@ -71,11 +71,11 @@ if ! command -v emptty >/dev/null 2>&1; then
     done
     sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
     sudo touch /etc/systemd/system/getty@tty1.service.d/override.conf 
-    sudo cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<EOF
+sudo bash -c 'cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<EOF
 [Service]
 ExecStart=
 ExecStart=/usr/bin/emptty
-EOF
+EOF'
     sudo systemctl daemon-reload
     sudo systemctl restart getty@tty1
     sudo raspi-config nonint do_boot_behaviour B2
