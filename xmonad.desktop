@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=xmonad
+Comment=xmonad
+Exec=xmonad
+Icon=xmonad
+Terminal=false
+Type=Application
+Categories=WindowManager;XSession;
+
