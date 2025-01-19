@@ -39,8 +39,6 @@ if [ "$1" = "--init" ]; then
 fi && \
 
 # install go
-
-
 ARCH=$(uname -m)
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 [[ $ARCH == "x86_64" ]] && ARCH="amd64"
@@ -57,34 +55,59 @@ rm -rf $TMP_DIR
 [[ ! $(grep "/usr/local/go/bin" $PATH) ]] && export PATH=$PATH:/usr/local/go/bin 
 go version
 
-# Check if WM config has already been done
-if ! systemctl is-active --quiet greetd; then
-
-    # Set boot target to CLI and disable display managers
-    echo "Configuring boot target..."
-
-    if ! command -v cargo &>/dev/null; then
-        if [ ! -f "$HOME/.cargo/env" ]; then
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        fi
-        . $HOME/.cargo/env
-    fi && \
-
-    mkdir -p $HOME/src && \
-    clone_if_not_exists https://github.com/apognu/tuigreet $HOME/src/tuigreet && \
-    cd $HOME/src/tuigreet && \
-    cargo build --release && \
-    mv target/release/tuigreet /usr/local/bin/tuigreet && \
-    mkdir /var/cache/tuigreet && \
-    chown greeter:greeter /var/cache/tuigreet && \
-    chmod 0755 /var/cache/tuigreet
-    
-
-    for dm in gdm3 lightdm sddm; do
+# install emptty
+clone_if_not_exists https://github.com/tvrzna/emptty /usr/local/src/emptty --sudo 
+cd /usr/local/src/emptty 
+$install gcc libpam0g-dev libx11-dev
+if [ ! command emptty >/dev/null 2>&1 ]; then
+    sudo make build
+    sudo make install-all
+    for dm in gdm gdm3 lightdm sddm; do
         sudo systemctl disable --now $dm 2>/dev/null || true
     done
-
+    mkdir -p /etc/systemd/system/getty@tty1.service.d
+    cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=/usr/bin/emptty
+EOF
+    systemctl daemon-reload
+    systemctl restart getty@tty1
+    raspi-config nonint do_boot_behaviour B2
 fi
+
+
+
+
+# # Check if WM config has already been done
+# if ! systemctl is-active --quiet greetd; then
+
+#     # Set boot target to CLI and disable display managers
+#     echo "Configuring boot target..."
+
+#     if ! command -v cargo &>/dev/null; then
+#         if [ ! -f "$HOME/.cargo/env" ]; then
+#             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+#         fi
+#         . $HOME/.cargo/env
+#     fi && \
+
+#     mkdir -p $HOME/src && \
+#     clone_if_not_exists https://github.com/apognu/tuigreet $HOME/src/tuigreet && \
+#     cd $HOME/src/tuigreet && \
+#     cargo build --release && \
+#     mv target/release/tuigreet /usr/local/bin/tuigreet && \
+#     mkdir /var/cache/tuigreet && \
+#     chown greeter:greeter /var/cache/tuigreet && \
+#     chmod 0755 /var/cache/tuigreet
+    
+
+#     for dm in gdm3 lightdm sddm; do
+#         sudo systemctl disable --now $dm 2>/dev/null || true
+#     done
+# fi
+
+exit 0
 
 # install X, disable Wayland
 $install xauth && \
