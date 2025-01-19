@@ -36,6 +36,8 @@ if [ "$1" = "--init" ]; then
     $upgrade
 fi && \
 
+$install golang && \
+
 # Check if WM config has already been done
 if ! systemctl is-active --quiet greetd; then
 
