@@ -141,10 +141,10 @@ if ! command -v fastfetch >/dev/null 2>&1; then
         librpm-dev \
         libpulse-dev \
         libddcutil4
-    mkdir -p build
+    sudo mkdir -p build
     cd build
-    cmake ..
-    cmake --build . --target fastfetch
+    sudo cmake ..
+    sudo cmake --build . --target fastfetch
 fi
 
 # Install development headers if needed
