@@ -82,17 +82,15 @@ EOF'
     sudo raspi-config nonint do_boot_behaviour B2
 fi
 
-exit 0
-
 
 # install X, disable Wayland
 $install xauth 
-if [[ -f "$gdm_conf" ]]; then
-    sudo sed -i '/^#*WaylandEnable/c\WaylandEnable=false' "$gdm_conf"
-else
-    echo "$gdm_conf not found to disable Wayland"
-    exit 1
-fi 
+# if [[ -f "$gdm_conf" ]]; then
+#     sudo sed -i '/^#*WaylandEnable/c\WaylandEnable=false' "$gdm_conf"
+# else
+#     echo "$gdm_conf not found to disable Wayland"
+#     exit 1
+# fi 
 
 # dnf init
 grep -q "^assumeyes=True" "$dnf_conf" || sudo sed -i '/^\[main\]/a assumeyes=True' "$dnf_conf" || echo -e "[main]\nassumeyes=True" | sudo tee -a "$dnf_conf" 
