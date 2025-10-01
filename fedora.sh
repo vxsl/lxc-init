@@ -86,7 +86,7 @@ fi && \
 
 # register xmonad as DE
 if [ ! -f "$desktop_file" ]; then
-    sudo cp $DIRNAME/xmonad.desktop "$desktop_file"
+    sudo cp $DIRNAME/xmonad.desktop "$desktop_file" || exit 1
 fi && \
 
 # install convenience scripts
@@ -124,8 +124,8 @@ fi && \
 # install snap, misc. snaps
 $install snapd && \
 sudo ln -sf /var/lib/snapd/snap /snap && \
-sudo snap install obsidian --classic && \
-sudo snap install code --classic && \
+sudo snap install obsidian --classic
+# sudo snap install code --classic && \
 
 # source .profile
 source $HOME/.profile && \
