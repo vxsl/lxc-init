@@ -62,6 +62,9 @@ clone_if_not_exists https://github.com/romkatv/powerlevel10k.git $HOME/.zsh/powe
 clone_if_not_exists https://github.com/wting/autojump $HOME/.zsh/autojump && \
 mkdir -p ~/.zsh/fzf && \
 ([ -d ~/.zsh/fzf/.git ] || git clone https://github.com/junegunn/fzf ~/.zsh/fzf) && \
+if ! command -v xob >/dev/null 2>&1; then
+    $HOME/.zsh/fzf/install
+fi && \
 ([ -f ~/.zsh/antigen.zsh ] || curl -L git.io/antigen > ~/.zsh/antigen.zsh) && \
 if [ "$(getent passwd $(whoami) | cut -d: -f7)" != "$(which zsh)" ]; then
     chsh -s $(which zsh)
@@ -80,7 +83,9 @@ if [ ! -f "$HOME/.ghcup/bin/stack" ]; then
     curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
 fi && \
 if [ ! -f "$HOME/.xmonad/stack.yaml" ]; then
-    $HOME/.ghcup/bin/stack init && \
+    $HOME/.ghcup/bin/stack init
+fi && \
+if ! command -v xmonad >/dev/null 2>&1; then
     $HOME/.ghcup/bin/stack install
 fi && \
 
@@ -107,7 +112,7 @@ pip3 install pulsectl && \
 clone_if_not_exists https://github.com/florentc/xob /usr/local/src/xob --sudo && \
 cd /usr/local/src/xob && \
 $install autoreconf aclocal libX11-devel libXrender-devel libconfig-devel && \
-if [ ! command xob >/dev/null 2>&1 ]; then
+if ! command -v xob >/dev/null 2>&1; then
     sudo make && sudo make install
 fi && \
 
@@ -121,17 +126,47 @@ if [ ! -f "$HOME/.cargo/bin/xidlehook" ]; then
     cp $HOME/dev/xidlehook/target/release/xidlehook $HOME/.cargo/bin
 fi && \
 
+# install zig (for ly)
+if ! command -v zig >/dev/null 2>&1; then
+    sudo cd /usr/local/src && \
+    sudo wget https://ziglang.org/download/0.15.1/zig-x86_64-linux-0.15.1.tar.xz && \
+    sudo mkdir -p /usr/local/src/zig && \
+    sudo tar -xf zig-x86_64-linux-0.15.1.tar.xz -C /usr/local/src/zig && \
+    sudo rm zig-x86_64-linux-0.15.1.tar.xz && \
+    sudo ln -s /usr/local/src/zig/zig-x86_64-linux-0.15.1/zig /usr/local/bin/zig
+fi && \
+
+
+# install ly
+$install kernel-devel pam-devel libxcb-devel xorg-x11-xauth brightnessctl && \
+if ! command -v ly >/dev/null 2>&1; then
+    sudo clone_if_not_exists https://github.com/fairyglade/ly /usr/local/src/ly && \
+    sudo cd /usr/local/src/ly && \
+    sudo zig build && \
+    sudo zig build installexe -Dinit_system=systemd && \
+    sudo systemctl disable gdm && \
+    sudo systemctl enable ly 
+fi && \
+
 # install snap, misc. snaps
 $install snapd && \
 sudo ln -sf /var/lib/snapd/snap /snap && \
 sudo snap install obsidian --classic
 # sudo snap install code --classic && \
 
-# source .profile
-source $HOME/.profile && \
+# install node
+if ! command -v node >/dev/null 2>&1; then
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+    nvm install node && \
+    nvm use node && \
+fi && \
 
 # install misc. gui progs
-$install firefox alacritty && \
+$install firefox chromium-browser alacritty flameshot redshift dmenu ranger xmodmap && \
+sudo dnf copr enable atim/bottom -y && $install bottom && \
+
+# source .profile
+source $HOME/.profile && \
 
 # go home
 cd $HOME && \
