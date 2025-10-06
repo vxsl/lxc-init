@@ -138,9 +138,9 @@ fi && \
 
 
 # install ly
-$install kernel-devel pam-devel libxcb-devel xorg-x11-xauth brightnessctl && \
+$install pam-devel libxcb-devel xorg-x11-xauth brightnessctl && \
 if ! command -v ly >/dev/null 2>&1; then
-    sudo clone_if_not_exists https://github.com/fairyglade/ly /usr/local/src/ly && \
+    clone_if_not_exists https://github.com/fairyglade/ly /usr/local/src/ly --sudo && \
     sudo cd /usr/local/src/ly && \
     sudo zig build && \
     sudo zig build installexe -Dinit_system=systemd && \
@@ -158,7 +158,7 @@ sudo snap install obsidian --classic
 if ! command -v node >/dev/null 2>&1; then
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
     nvm install node && \
-    nvm use node && \
+    nvm use node 
 fi && \
 
 # install misc. gui progs
