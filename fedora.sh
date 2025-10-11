@@ -116,6 +116,7 @@ if ! command -v xob >/dev/null 2>&1; then
     sudo make && sudo make install
 fi && \
 
+
 # install xidlehook
 $install cargo && \
 clone_if_not_exists https://github.com/jD91mZM2/xidlehook $HOME/dev/xidlehook && \
@@ -128,12 +129,27 @@ fi && \
 
 # install zig (for ly)
 if ! command -v zig >/dev/null 2>&1; then
+    # Detect architecture
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "x86_64" ]; then
+        ZIG_ARCH="x86_64"
+    elif [ "$ARCH" = "aarch64" ]; then
+        ZIG_ARCH="aarch64"
+    else
+        echo "Unsupported architecture: $ARCH"
+        exit 1
+    fi
+    
+    ZIG_VERSION="0.15.1"
+    ZIG_FILENAME="zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz"
+    ZIG_URL="https://ziglang.org/download/${ZIG_VERSION}/${ZIG_FILENAME}"
+    
     sudo cd /usr/local/src && \
-    sudo wget https://ziglang.org/download/0.15.1/zig-x86_64-linux-0.15.1.tar.xz && \
+    sudo wget "$ZIG_URL" && \
     sudo mkdir -p /usr/local/src/zig && \
-    sudo tar -xf zig-x86_64-linux-0.15.1.tar.xz -C /usr/local/src/zig && \
-    sudo rm zig-x86_64-linux-0.15.1.tar.xz && \
-    sudo ln -s /usr/local/src/zig/zig-x86_64-linux-0.15.1/zig /usr/local/bin/zig
+    sudo tar -xf "$ZIG_FILENAME" -C /usr/local/src/zig && \
+    sudo rm "$ZIG_FILENAME" && \
+    sudo ln -s "/usr/local/src/zig/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}/zig" /usr/local/bin/zig
 fi && \
 
 
@@ -141,11 +157,14 @@ fi && \
 $install pam-devel libxcb-devel xorg-x11-xauth brightnessctl && \
 if ! command -v ly >/dev/null 2>&1; then
     clone_if_not_exists https://github.com/fairyglade/ly /usr/local/src/ly --sudo && \
-    sudo cd /usr/local/src/ly && \
+    cd /usr/local/src/ly && \
     sudo zig build && \
     sudo zig build installexe -Dinit_system=systemd && \
     sudo systemctl disable gdm && \
-    sudo systemctl enable ly 
+    sudo systemctl enable ly && \
+    sudo systemctl disable getty@tty2.service && \
+    # https://codeberg.org/fairyglade/ly/issues/494#issuecomment-2926150
+    chcon system_u:object_r:xdm_exec_t:s0 $(which ly)
 fi && \
 
 # install snap, misc. snaps
