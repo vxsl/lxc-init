@@ -201,7 +201,11 @@ fi && \
 # install eww
 if ! command -v eww >/dev/null 2>&1; then
     sudo dnf install gtk3-devel gtk-layer-shell-devel pango-devel gdk-pixbuf2-devel libdbusmenu-gtk3-devel cairo-devel glib2-devel glibc-devel
-    git clone --depth=1 https://github.com/elkowar/eww.git
+    clone_if_not_exists https://github.com/elkowar/eww.git /usr/local/src/eww --sudo && \
+    cd /usr/local/src/eww && \
+    sudo cargo build --release --no-default-features --features x11 && \
+    sudo chmod +x target/release/eww && \
+    sudo cp target/release/eww /usr/local/bin
 fi && \
 
 
