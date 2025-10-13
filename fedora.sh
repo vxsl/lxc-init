@@ -49,7 +49,9 @@ fi && \
 grep -q "^assumeyes=True" "$dnf_conf" || sudo sed -i '/^\[main\]/a assumeyes=True' "$dnf_conf" || echo -e "[main]\nassumeyes=True" | sudo tee -a "$dnf_conf" && \
 
 # init git
-$install git tig && \
+if ! command -v tig >/dev/null 2>&1; then
+    $install git tig && \
+fi && \
 git config --global user.email "$email" && \
 git config --global user.name "$name" && \
 
@@ -118,7 +120,9 @@ fi && \
 
 
 # install xidlehook
-$install cargo && \
+if ! command -v cargo >/dev/null 2>&1; then
+    $install cargo
+fi && \
 clone_if_not_exists https://github.com/jD91mZM2/xidlehook $HOME/dev/xidlehook && \
 if [ ! -f "$HOME/.cargo/bin/xidlehook" ]; then
     cd $HOME/dev/xidlehook && \
