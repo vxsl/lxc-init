@@ -110,7 +110,7 @@ cd $HOME/.dotfiles && \
 git checkout --track origin/$BRANCH && \
 git submodule update --init --recursive
 $install stow && \
-cd $HOME/.dotfiles && ./setup-stow.sh && \
+cd $HOME/.dotfiles && sudo ./setup-stow.sh && \
 
 # install xob and other volume stuff
 $install python3-pip && \
