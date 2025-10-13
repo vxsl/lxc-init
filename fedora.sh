@@ -51,7 +51,7 @@ grep -q "^assumeyes=True" "$dnf_conf" || sudo sed -i '/^\[main\]/a assumeyes=Tru
 
 # init git
 if ! command -v tig >/dev/null 2>&1; then
-    $install git tig && \
+    $install git tig 
 fi && \
 git config --global user.email "$email" && \
 git config --global user.name "$name" && \
