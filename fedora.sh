@@ -25,6 +25,7 @@ desktop_file="/usr/share/xsessions/xmonad.desktop"
 dnf_conf="/etc/dnf/dnf.conf"
 SCRIPT_PATH=$(readlink -f "$0")
 DIRNAME=$(dirname "$SCRIPT_PATH")
+BRANCH=$(cd "$DIRNAME" && git rev-parse --abbrev-ref HEAD)
 
 # optional init routine
 if [ "$1" = "--init" ]; then
@@ -77,6 +78,7 @@ fi && \
 $install xmobar fastfetch dmenu && \
 clone_if_not_exists https://github.com/vxsl/.xmonad $HOME/.xmonad && \
 cd $HOME/.xmonad && \
+git checkout --track origin/$BRANCH && \
 git config --local status.showUntrackedFiles no && \
 clone_if_not_exists https://github.com/xmonad/xmonad $HOME/.xmonad/xmonad && \
 clone_if_not_exists https://github.com/xmonad/xmonad-contrib $HOME/.xmonad/xmonad-contrib && \
@@ -99,11 +101,13 @@ fi && \
 # install convenience scripts
 $install xdotool pactl && \
 clone_if_not_exists https://github.com/vxsl/bin $HOME/bin && \
+git checkout --track origin/$BRANCH && \
 
 # install dotfiles
 $install dunst nitrogen arandr xautolock picom xsetroot xclip xwininfo parallel && \
 clone_if_not_exists https://github.com/vxsl/.dotfiles $HOME/.dotfiles && \
 cd $HOME/.dotfiles && \
+git checkout --track origin/$BRANCH && \
 git submodule update --init --recursive
 $install stow && \
 cd $HOME/.dotfiles && ./setup-stow.sh && \
