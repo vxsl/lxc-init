@@ -185,7 +185,27 @@ if ! command -v node >/dev/null 2>&1; then
 fi && \
 
 # install misc. gui progs
-$install firefox chromium-browser alacritty flameshot redshift dmenu ranger xmodmap && \
+$install firefox chromium-browser alacritty flameshot redshift dmenu ranger xmodmap tmux delta && \
+
+# install rofi, xclip, bat
+$install rofi xclip bat && \
+if ! command -v clipmenu >/dev/null 2>&1; then
+    clone_if_not_exists https://github.com/cdown/clipmenu /usr/local/src/clipmenu --sudo && \
+    cd /usr/local/src/clipmenu && \
+    sudo make install 
+fi && \
+# install eww
+if ! command -v eww >/dev/null 2>&1; then
+    sudo dnf install gtk3-devel gtk-layer-shell-devel pango-devel gdk-pixbuf2-devel libdbusmenu-gtk3-devel cairo-devel glib2-devel glibc-devel
+    git clone --depth=1 https://github.com/elkowar/eww.git
+fi && \
+
+
+dnf install gnome-themes extra
+gsettings set org.gnome.desktop.interface color-scheme prefer-dark 
+gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark
+
+# install btm
 sudo dnf copr enable atim/bottom -y && $install bottom && \
 
 # source .profile
