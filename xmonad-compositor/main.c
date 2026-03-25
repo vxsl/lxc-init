@@ -175,6 +175,23 @@ static void handle_new_output(struct wl_listener *listener, void *data) {
     wl_list_insert(&server->outputs, &output->link);
     wlr_output_layout_add_auto(server->output_layout, wlr_output);
     wlr_scene_output_create(server->scene, wlr_output);
+
+    /* Solid black background so the screen isn't undefined before xmonad starts */
+    struct wlr_box box;
+    wlr_output_effective_resolution(wlr_output, &box.width, &box.height);
+    box.x = box.y = 0;
+    struct wlr_output_layout_output *olo =
+        wlr_output_layout_get(server->output_layout, wlr_output);
+    if (olo) {
+        /* position relative to layout origin */
+        int lx = olo->x, ly = olo->y;
+        float black[4] = {0, 0, 0, 1};
+        struct wlr_scene_rect *bg = wlr_scene_rect_create(
+            &server->scene->tree, box.width, box.height, black);
+        wlr_scene_node_set_position(&bg->node, lx, ly);
+        /* Put background below everything else */
+        wlr_scene_node_lower_to_bottom(&bg->node);
+    }
 }
 
 /* ── keyboard handlers ───────────────────────────────────────────────── */
