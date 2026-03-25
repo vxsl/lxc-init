@@ -104,7 +104,7 @@ clone_if_not_exists https://github.com/vxsl/bin $HOME/bin && \
 git checkout --track origin/$BRANCH && \
 
 # install dotfiles
-$install dunst nitrogen arandr xautolock picom xsetroot xclip xwininfo parallel && \
+$install dunst nitrogen arandr xautolock picom xsetroot xclip xwininfo parallel xdg-desktop-portal-gtk && \
 clone_if_not_exists https://github.com/vxsl/.dotfiles $HOME/.dotfiles && \
 cd $HOME/.dotfiles && \
 git checkout --track origin/$BRANCH && \
