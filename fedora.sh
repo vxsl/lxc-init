@@ -37,121 +37,8 @@ if [ "$1" = "--init" ]; then
     $update
 fi && \
 
-# install X11 and Wayland support
-$install xorg-x11-server-Xorg wayland meson ninja-build wlroots-devel wayland-protocols-devel libxkbcommon-devel scdoc && \
-
-# build and install cage (Wayland kiosk compositor)
-if ! command -v cage >/dev/null 2>&1; then
-    clone_if_not_exists https://github.com/cage-kiosk/cage /tmp/cage-build && \
-    cd /tmp/cage-build && \
-    meson setup build --buildtype=release && \
-    meson compile -C build && \
-    sudo cp build/cage /usr/local/bin/cage
-fi && \
-
-# create xmonad wayland session entry
-sudo tee /usr/local/bin/xmonad-wayland-session > /dev/null <<'SESSION_SCRIPT'
-#!/bin/bash
-# Session: xmonad inside rootful Xwayland on cage (Wayland kiosk)
-
-LOG=/tmp/xmonad-wayland-session.log
-exec > "$LOG" 2>&1
-set -x
-
-# Clean stale X lock files from prior sessions
-for lock in /tmp/.X*-lock; do
-    [ -f "$lock" ] || continue
-    pid=$(tr -d ' ' < "$lock")
-    kill -0 "$pid" 2>/dev/null || rm -f "$lock" "/tmp/.X11-unix/X${lock//[^0-9]/}" 2>/dev/null
-done
-
-# Read connected DRM outputs
-declare -a OUTPUT_NAMES
-declare -a OUTPUT_WS
-declare -a OUTPUT_HS
-declare -a OUTPUT_MMW
-declare -a OUTPUT_MMH
-TOTAL_W=0
-TOTAL_H=0
-
-for conn in /sys/class/drm/card2-*/status; do
-    [ "$(cat "$conn")" = "connected" ] || continue
-    dir="$(dirname "$conn")"
-    first_mode=$(head -1 "$dir/modes" 2>/dev/null)
-    [ -z "$first_mode" ] && continue
-    w=${first_mode%x*}; h=${first_mode#*x}
-    name=$(basename "$dir"); name=${name#card2-}
-    mmw=$(cat "$dir/../../drm_connector_attrs/connector_id/phys_dimensions_mm" 2>/dev/null | cut -dx -f1)
-    mmh=$(cat "$dir/../../drm_connector_attrs/connector_id/phys_dimensions_mm" 2>/dev/null | cut -dx -f2)
-    [ -z "$mmw" ] && mmw=$((w * 25 / 96))
-    [ -z "$mmh" ] && mmh=$((h * 25 / 96))
-    OUTPUT_NAMES+=("$name")
-    OUTPUT_WS+=("$w")
-    OUTPUT_HS+=("$h")
-    OUTPUT_MMW+=("$mmw")
-    OUTPUT_MMH+=("$mmh")
-    TOTAL_W=$((TOTAL_W + w))
-    [ "$h" -gt "$TOTAL_H" ] && TOTAL_H=$h
-done
-[ "$TOTAL_W" -eq 0 ] && TOTAL_W=3024
-[ "$TOTAL_H" -eq 0 ] && TOTAL_H=1890
-
-cage -- Xwayland :5 -geometry "${TOTAL_W}x${TOTAL_H}" -host-grab &
-CAGE_PID=$!
-
-for i in $(seq 1 50); do
-    xdpyinfo -display :5 &>/dev/null && break
-    sleep 0.1
-done
-
-export DISPLAY=:5
-export GDK_BACKEND=x11
-unset WAYLAND_DISPLAY
-unset XDG_SESSION_TYPE
-
-# Carve Xwayland framebuffer into logical monitors for xmonad/Xinerama.
-echo "=== xrandr --query ===" && xrandr --query
-echo "=== xrandr --listmonitors ===" && xrandr --listmonitors
-
-if [ ${#OUTPUT_NAMES[@]} -gt 1 ]; then
-    # Rootful Xwayland creates one connected output (typically XWAYLAND0) spanning
-    # the full framebuffer. Assigning it to monitor-0 removes the automatic
-    # full-framebuffer monitor entry (per RandR spec: setmonitor deletes any monitor
-    # that shares the same outputs). monitor-1..N use "none" (virtual, no output).
-    XRANDR_CONN_OUTPUT=$(xrandr --query | awk '/ connected/ {print $1; exit}')
-    [ -z "$XRANDR_CONN_OUTPUT" ] && XRANDR_CONN_OUTPUT="none"
-    echo "Connected RandR output: $XRANDR_CONN_OUTPUT"
-
-    X_OFFSET=0
-    for i in "${!OUTPUT_NAMES[@]}"; do
-        w="${OUTPUT_WS[$i]}"; h="${OUTPUT_HS[$i]}"
-        mmw="${OUTPUT_MMW[$i]}"; mmh="${OUTPUT_MMH[$i]}"
-        if [ "$i" -eq 0 ]; then
-            xrandr --setmonitor "monitor-${i}" "${w}/${mmw}x${h}/${mmh}+${X_OFFSET}+0" "$XRANDR_CONN_OUTPUT"
-        else
-            xrandr --setmonitor "monitor-${i}" "${w}/${mmw}x${h}/${mmh}+${X_OFFSET}+0" none
-        fi
-        X_OFFSET=$((X_OFFSET + w))
-    done
-
-    echo "=== xrandr --listmonitors (after setup) ===" && xrandr --listmonitors
-fi
-
-xmonad
-
-kill $CAGE_PID 2>/dev/null
-SESSION_SCRIPT
-sudo chmod +x /usr/local/bin/xmonad-wayland-session && \
-
-sudo tee /usr/share/wayland-sessions/xmonad-wayland.desktop > /dev/null <<'DESKTOP'
-[Desktop Entry]
-Name=xmonad (Wayland)
-Comment=xmonad inside rootful Xwayland on cage
-Exec=/usr/local/bin/xmonad-wayland-session
-Type=Application
-DesktopNames=GNOME
-DESKTOP
-
+# install X11 support
+$install xorg-x11-server-Xorg && \
 
 # bump inotify instance limit (default 128 causes "unable to watch file, too many open files" with multiple editors/agents)
 echo 'fs.inotify.max_user_instances=512' | sudo tee /etc/sysctl.d/90-inotify.conf > /dev/null && \
@@ -215,6 +102,22 @@ fi && \
 # register xmonad as DE
 if [ ! -f "$desktop_file" ]; then
     sudo cp $DIRNAME/xmonad.desktop "$desktop_file" || exit 1
+fi && \
+
+# fix X11 lag on MacBook internal display: force 60Hz via lightdm display-setup-script.
+# X11 defaults to EDID preferred mode (120Hz on eDP-1); Apple DCP overhead at 120Hz
+# causes input/render lag that doesn't appear on HDMI (60Hz default).
+sudo tee /etc/lightdm/display-setup.sh > /dev/null <<'DISPLAY_SETUP'
+#!/bin/sh
+xrandr --output eDP-1 --mode 3024x1890 --rate 60
+DISPLAY_SETUP
+sudo chmod +x /etc/lightdm/display-setup.sh && \
+if grep -q "^display-setup-script=" /etc/lightdm/lightdm.conf 2>/dev/null; then
+    true
+elif grep -q "^#display-setup-script=" /etc/lightdm/lightdm.conf 2>/dev/null; then
+    sudo sed -i "s|^#display-setup-script=.*|display-setup-script=/etc/lightdm/display-setup.sh|" /etc/lightdm/lightdm.conf
+else
+    sudo sed -i "/^\[Seat:\*\]/a display-setup-script=/etc/lightdm/display-setup.sh" /etc/lightdm/lightdm.conf
 fi && \
 
 # install convenience scripts
