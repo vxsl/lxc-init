@@ -219,9 +219,8 @@ if ! command -v ly >/dev/null 2>&1; then
     cd /usr/local/src/ly && \
     sudo zig build && \
     sudo zig build installexe -Dinit_system=systemd && \
-    sudo systemctl disable gdm && \
-    sudo systemctl enable ly && \
-    sudo systemctl disable getty@tty2.service && \
+    sudo systemctl disable gdm lightdm 2>/dev/null || true && \
+    sudo systemctl enable ly@tty2 && \
     # https://codeberg.org/fairyglade/ly/issues/494#issuecomment-2926150
     chcon system_u:object_r:xdm_exec_t:s0 $(which ly)
 fi && \
