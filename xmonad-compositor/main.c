@@ -42,12 +42,16 @@
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/util/log.h>
 #include <wlr/xwayland/xwayland.h>
+#include <wlr/xwayland/shell.h>
+#include <wlr/xwayland/server.h>
 #include <xkbcommon/xkbcommon.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
 /* ── forward declarations ────────────────────────────────────────────── */
 struct server;
 static void process_cursor_motion(struct server *s, uint32_t time_msec);
+static bool filter_global(const struct wl_client *client,
+    const struct wl_global *global, void *data);
 
 /* ── data structures ─────────────────────────────────────────────────── */
 
@@ -116,6 +120,7 @@ struct xw_view {
     struct wl_listener associate;
     struct wl_listener dissociate;
     struct wl_listener set_geometry;
+    struct wl_listener request_activate;
     struct wl_listener destroy;
 };
 
@@ -365,15 +370,41 @@ static void xw_view_set_geometry(struct wl_listener *listener, void *data) {
             view->xsurface->x, view->xsurface->y);
 }
 
+static void xw_focus_surface(struct server *server, struct wlr_surface *surface) {
+    struct wlr_seat *seat = server->seat;
+    struct wlr_keyboard *kb = wlr_seat_get_keyboard(seat);
+    if (kb)
+        wlr_seat_keyboard_notify_enter(seat, surface,
+            kb->keycodes, kb->num_keycodes, &kb->modifiers);
+}
+
+static void xw_view_request_activate(struct wl_listener *listener, void *data) {
+    struct xw_view *view = wl_container_of(listener, view, request_activate);
+    if (!view->scene_surface || !view->xsurface->surface) return;
+    wlr_log(WLR_DEBUG, "xwayland: request_activate on window 0x%x",
+        view->xsurface->window_id);
+    xw_focus_surface(view->server, view->xsurface->surface);
+}
+
 static void xw_view_associate(struct wl_listener *listener, void *data) {
     struct xw_view *view = wl_container_of(listener, view, associate);
-    assert(!view->scene_surface);
+    if (view->scene_surface) return; /* already associated (called twice guard) */
+    wlr_log(WLR_INFO, "xw_view_associate: window 0x%x at (%d,%d)",
+        view->xsurface->window_id, view->xsurface->x, view->xsurface->y);
     view->scene_surface = wlr_scene_surface_create(
         &view->server->scene->tree, view->xsurface->surface);
     if (!view->scene_surface) return;
     /* Position immediately; the scene will show content once committed. */
     wlr_scene_node_set_position(&view->scene_surface->buffer->node,
         view->xsurface->x, view->xsurface->y);
+    /*
+     * Give keyboard focus to the first X surface that appears so xmonad
+     * can receive key grabs (e.g. Mod+Shift+Return) before any window is open.
+     * Subsequent focus changes come via request_activate.
+     */
+    struct wlr_seat *seat = view->server->seat;
+    if (!seat->keyboard_state.focused_surface)
+        xw_focus_surface(view->server, view->xsurface->surface);
 }
 
 static void xw_view_dissociate(struct wl_listener *listener, void *data) {
@@ -389,9 +420,30 @@ static void xw_view_destroy(struct wl_listener *listener, void *data) {
     wl_list_remove(&view->associate.link);
     wl_list_remove(&view->dissociate.link);
     wl_list_remove(&view->set_geometry.link);
+    wl_list_remove(&view->request_activate.link);
     wl_list_remove(&view->destroy.link);
     wl_list_remove(&view->link);
     free(view);
+}
+
+struct poll_timer {
+    struct wl_event_source *src;
+    struct xw_view *view;
+};
+
+static int poll_for_surface(void *data) {
+    struct poll_timer *timer = data;
+    struct xw_view *view = timer->view;
+
+    if (view->xsurface->surface && !view->scene_surface) {
+        wlr_log(WLR_INFO, "poll_for_surface: window 0x%x now has surface %p",
+            view->xsurface->window_id, (void*)view->xsurface->surface);
+        xw_view_associate(&view->associate, NULL);
+        wl_event_source_remove(timer->src);
+        free(timer);
+        return 0;  /* stop timer */
+    }
+    return 10;  /* reschedule in 10ms */
 }
 
 static void handle_new_xwayland_surface(struct wl_listener *listener,
@@ -399,6 +451,9 @@ static void handle_new_xwayland_surface(struct wl_listener *listener,
     struct server               *server =
         wl_container_of(listener, server, new_xwayland_surface);
     struct wlr_xwayland_surface *xsurface = data;
+
+    wlr_log(WLR_INFO, "new_xwayland_surface: window 0x%x surface=%p",
+        xsurface->window_id, (void*)xsurface->surface);
 
     struct xw_view *view = calloc(1, sizeof(*view));
     view->server   = server;
@@ -413,10 +468,28 @@ static void handle_new_xwayland_surface(struct wl_listener *listener,
     view->set_geometry.notify = xw_view_set_geometry;
     wl_signal_add(&xsurface->events.set_geometry, &view->set_geometry);
 
+    view->request_activate.notify = xw_view_request_activate;
+    wl_signal_add(&xsurface->events.request_activate, &view->request_activate);
+
     view->destroy.notify = xw_view_destroy;
     wl_signal_add(&xsurface->events.destroy, &view->destroy);
 
     wl_list_insert(&server->views, &view->link);
+
+    /*
+     * In wlroots 0.19 the wlr_surface is created before new_surface fires,
+     * so associate has already been emitted by the time we add our listener.
+     * If the surface is already set, call the handler directly.
+     */
+    if (xsurface->surface != NULL) {
+        xw_view_associate(&view->associate, NULL);
+    } else {
+        /* Workaround: poll for surface to appear since shell_v1 isn't working */
+        struct wl_event_loop *loop = wl_display_get_event_loop(server->display);
+        struct poll_timer *timer = calloc(1, sizeof(*timer));
+        timer->view = view;
+        timer->src = wl_event_loop_add_timer(loop, poll_for_surface, timer);
+    }
 }
 
 /* ── Xwayland ready ──────────────────────────────────────────────────── */
@@ -424,6 +497,12 @@ static void handle_new_xwayland_surface(struct wl_listener *listener,
 static void xwayland_ready(struct wl_listener *listener, void *data) {
     struct server *server = wl_container_of(listener, server, xwayland_ready);
     wlr_xwayland_set_seat(server->xwayland, server->seat);
+    if (server->xwayland->shell_v1 && server->xwayland->server) {
+        wlr_xwayland_shell_v1_set_client(server->xwayland->shell_v1,
+            server->xwayland->server->client);
+        wlr_log(WLR_INFO, "set_client: authorized %p to use shell_v1",
+            (void*)server->xwayland->server->client);
+    }
     setenv("DISPLAY", server->xwayland->display_name, 1);
     wlr_log(WLR_INFO, "Xwayland ready on %s; launching xmonad",
         server->xwayland->display_name);
@@ -431,10 +510,39 @@ static void xwayland_ready(struct wl_listener *listener, void *data) {
     pid_t pid = fork();
     if (pid == 0) {
         setsid();
+        /* Force X11 for all xmonad children: apps like alacritty (winit) will
+         * try Wayland if WAYLAND_DISPLAY is set, but our compositor has no
+         * xdg-shell handler, so their windows would never appear. */
+        unsetenv("WAYLAND_DISPLAY");
         /* Inherit DISPLAY set above */
         execl("/bin/sh", "sh", "-c", "xmonad", NULL);
         _exit(1);
     }
+}
+
+/* ── global filter ───────────────────────────────────────────────────── */
+
+/*
+ * Restrict xwayland_shell_v1 visibility to only the Xwayland client.
+ * Without this, any Wayland client can attempt to bind to shell_v1, and
+ * (critically) the timing of xwayland_ready vs Xwayland's global enumeration
+ * means Xwayland would be denied if we only called set_client in ready.
+ * This filter runs at bind time: Xwayland has already connected (its client
+ * pointer is set) before it enumerates globals, so the check is valid.
+ * Pattern from sway's server.c.
+ */
+static bool filter_global(const struct wl_client *client,
+        const struct wl_global *global, void *data) {
+    struct server *server = data;
+    if (server->xwayland && server->xwayland->shell_v1 &&
+            global == server->xwayland->shell_v1->global) {
+        bool allow = server->xwayland->server != NULL &&
+                     client == server->xwayland->server->client;
+        wlr_log(WLR_DEBUG, "filter_global: shell_v1 bind from %p, xway_client=%p, allow=%d",
+            (void*)client, (void*)(server->xwayland->server ? server->xwayland->server->client : NULL), allow);
+        return allow;
+    }
+    return true;
 }
 
 /* ── main ────────────────────────────────────────────────────────────── */
@@ -448,6 +556,8 @@ int main(void) {
     wl_list_init(&server.keyboards);
 
     server.display = wl_display_create();
+    /* Must be set before any globals are created, including xwayland's shell_v1 */
+    wl_display_set_global_filter(server.display, filter_global, &server);
     struct wl_event_loop *loop = wl_display_get_event_loop(server.display);
 
     server.backend = wlr_backend_autocreate(loop, &server.session);
@@ -508,6 +618,14 @@ int main(void) {
         wlr_log(WLR_ERROR, "failed to create Xwayland");
         return 1;
     }
+    /* Authorize Xwayland to use the shell_v1 protocol. This must happen before
+     * Xwayland tries to associate surfaces. With lazy=false, Xwayland starts
+     * immediately, but server->client may not be set yet. We'll call set_client
+     * in the ready callback to be safe. */
+    wlr_log(WLR_DEBUG, "After create: shell_v1=%p, server=%p, client=%p",
+        (void*)server.xwayland->shell_v1,
+        (void*)server.xwayland->server,
+        (void*)(server.xwayland->server ? server.xwayland->server->client : NULL));
     server.xwayland_ready.notify = xwayland_ready;
     wl_signal_add(&server.xwayland->events.ready, &server.xwayland_ready);
     server.new_xwayland_surface.notify = handle_new_xwayland_surface;
