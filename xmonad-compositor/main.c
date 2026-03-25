@@ -24,6 +24,7 @@
 
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
+#include <wlr/backend/session.h>
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_compositor.h>
@@ -42,6 +43,7 @@
 #include <wlr/util/log.h>
 #include <wlr/xwayland/xwayland.h>
 #include <xkbcommon/xkbcommon.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
 
 /* ── forward declarations ────────────────────────────────────────────── */
 struct server;
@@ -52,6 +54,7 @@ static void process_cursor_motion(struct server *s, uint32_t time_msec);
 struct server {
     struct wl_display             *display;
     struct wlr_backend            *backend;
+    struct wlr_session            *session;  /* for VT switching */
     struct wlr_renderer           *renderer;
     struct wlr_allocator          *allocator;
     struct wlr_compositor         *compositor;
@@ -186,8 +189,32 @@ static void keyboard_handle_modifiers(struct wl_listener *listener, void *data) 
 static void keyboard_handle_key(struct wl_listener *listener, void *data) {
     struct keyboard *kb = wl_container_of(listener, kb, key);
     struct wlr_keyboard_key_event *ev = data;
-    wlr_seat_set_keyboard(kb->server->seat, kb->wlr_keyboard);
-    wlr_seat_keyboard_notify_key(kb->server->seat,
+    struct server *server = kb->server;
+
+    /*
+     * VT switching: Ctrl+Alt+Fn must be handled by the compositor and
+     * forwarded to the session/kernel — it does NOT happen automatically
+     * through libinput when we hold the DRM master.
+     */
+    if (ev->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+        uint32_t mods = wlr_keyboard_get_modifiers(kb->wlr_keyboard);
+        if ((mods & WLR_MODIFIER_CTRL) && (mods & WLR_MODIFIER_ALT)) {
+            /* xkb keycode = raw evdev keycode + 8 */
+            xkb_keysym_t sym = xkb_state_key_get_one_sym(
+                kb->wlr_keyboard->xkb_state, ev->keycode + 8);
+            if (sym >= XKB_KEY_XF86Switch_VT_1 &&
+                sym <= XKB_KEY_XF86Switch_VT_12) {
+                unsigned vt = sym - XKB_KEY_XF86Switch_VT_1 + 1;
+                wlr_log(WLR_INFO, "switching to VT %u", vt);
+                if (server->session)
+                    wlr_session_change_vt(server->session, vt);
+                return; /* do not forward to seat */
+            }
+        }
+    }
+
+    wlr_seat_set_keyboard(server->seat, kb->wlr_keyboard);
+    wlr_seat_keyboard_notify_key(server->seat,
         ev->time_msec, ev->keycode, ev->state);
 }
 
@@ -406,7 +433,7 @@ int main(void) {
     server.display = wl_display_create();
     struct wl_event_loop *loop = wl_display_get_event_loop(server.display);
 
-    server.backend = wlr_backend_autocreate(loop, NULL);
+    server.backend = wlr_backend_autocreate(loop, &server.session);
     if (!server.backend) {
         wlr_log(WLR_ERROR, "failed to create backend");
         return 1;

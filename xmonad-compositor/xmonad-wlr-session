@@ -1,0 +1,15 @@
+#!/bin/bash
+# Wrapper for xmonad-wlr compositor session.
+# Logs compositor output to /tmp/xmonad-wlr.log for debugging.
+# Ctrl+Alt+Fn VT switching is handled inside the compositor binary.
+
+LOG=/tmp/xmonad-wlr.log
+exec > "$LOG" 2>&1
+set -x
+
+export GDK_BACKEND=x11
+export QT_QPA_PLATFORM=xcb
+unset WAYLAND_DISPLAY
+
+exec env LD_PRELOAD=/usr/local/lib/libno-redirect.so \
+     /usr/local/bin/xmonad-wlr
