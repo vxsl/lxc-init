@@ -150,6 +150,11 @@ sudo systemd-hwdb update
 sudo tee /etc/udev/rules.d/95-display-hotplug.rules > /dev/null <<'UDEV'
 ACTION=="change", SUBSYSTEM=="drm", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="rescreen.service"
 UDEV
+# start the scarlett-keepalive user service when the Focusrite Scarlett is plugged in
+# (USB vendor 1235 = Focusrite-Novation, product 821a = Scarlett 4i4 4th Gen)
+sudo tee /etc/udev/rules.d/96-focusrite-keepalive.rules > /dev/null <<'UDEV'
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="1235", ATTR{idProduct}=="821a", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="scarlett-keepalive.service"
+UDEV
 sudo udevadm control --reload-rules
 mkdir -p $HOME/.config/systemd/user
 cat > $HOME/.config/systemd/user/rescreen.service <<EOF
@@ -162,6 +167,7 @@ Environment=DISPLAY=:0
 ExecStart=$HOME/bin/rescreen
 EOF
 systemctl --user daemon-reload
+systemctl --user enable scarlett-keepalive.service 2>/dev/null || true
 
 # install xob and other volume stuff
 $install python3-pip && \
