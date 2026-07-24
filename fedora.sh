@@ -58,6 +58,21 @@ if ! command -v tig >/dev/null 2>&1; then
     sudo make prefix=/usr/local && \
     sudo make install prefix=/usr/local
 fi && \
+
+# patched picom (SIGUSR2 hot-reload of shaders for flash-free night-light on Asahi)
+if ! nm /usr/local/bin/picom 2>/dev/null | grep -q shader_reload_enable; then
+    $install libev-devel uthash-devel xcb-util-devel xcb-util-image-devel \
+             xcb-util-renderutil-devel xcb-util-wm-devel libconfig-devel pcre2-devel \
+             pixman-devel libXext-devel libpng-devel libdrm-devel libepoxy-devel \
+             dbus-devel meson ninja-build && \
+    clone_if_not_exists https://github.com/vxsl/picom /usr/local/src/picom --sudo && \
+    cd /usr/local/src/picom && \
+    sudo git config --global --add safe.directory /usr/local/src/picom && \
+    sudo git checkout shader-hot-reload && \
+    sudo meson setup build && \
+    sudo ninja -C build && \
+    sudo ninja -C build install
+fi && \
 git config --global user.email "$email" && \
 git config --global user.name "$name" && \
 git config --global --add --bool push.autoSetupRemote true && \
@@ -125,9 +140,12 @@ $install xdotool pactl && \
 clone_if_not_exists https://github.com/vxsl/bin $HOME/bin && \
 cd $HOME/bin && \
 (git checkout $BRANCH 2>/dev/null || git checkout --track origin/$BRANCH) && \
+# dev-workflow-tools is a submodule of ~/bin; without this, fzedit/rr/oneshot
+# and friends are an empty directory on a fresh box.
+git submodule update --init --recursive && \
 
 # install dotfiles
-$install dunst nitrogen arandr xautolock picom xsetroot xclip xwininfo parallel xdg-desktop-portal-gtk && \
+$install dunst nitrogen arandr xautolock xsetroot xclip xwininfo parallel xdg-desktop-portal-gtk && \
 clone_if_not_exists https://github.com/vxsl/.dotfiles $HOME/.dotfiles && \
 cd $HOME/.dotfiles && \
 (git checkout $BRANCH 2>/dev/null || git checkout --track origin/$BRANCH) && \
@@ -256,6 +274,22 @@ if [ ! -d "$NVM_DIR/versions/node" ] || [ -z "$(ls -A "$NVM_DIR/versions/node")"
     nvm use --lts
 fi && \
 
+# nvm is only loaded by interactive zsh (see .zshrc), so anything the session spawns
+# -- xmonad scratchpads, systemd user units, and neovim's Mason installing language
+# servers -- sees no node toolchain at all. .profile puts ~/.local/bin on PATH
+# unconditionally, so shim the toolchain there. Mason needs npm specifically: without
+# it, eslint-lsp fails to install and <leader>j silently loses its eslint step.
+# corepack enable creates the yarn shim a packageManager field may require.
+# ln -sfn (not -s) so re-running after a node upgrade re-points these.
+corepack enable 2>/dev/null || true
+NODE_BIN="$(dirname "$(nvm which current 2>/dev/null)")" && \
+mkdir -p "$HOME/.local/bin" && \
+if [ -d "$NODE_BIN" ]; then
+    for b in node npx npm corepack yarn pnpm; do
+        [ -e "$NODE_BIN/$b" ] && ln -sfn "$NODE_BIN/$b" "$HOME/.local/bin/$b"
+    done
+fi && \
+
 # install widevine (DRM support for chromium/firefox)
 $install widevine-installer && \
 if [ ! -f /var/lib/widevine/libwidevinecdm.so ]; then
@@ -263,10 +297,10 @@ if [ ! -f /var/lib/widevine/libwidevinecdm.so ]; then
 fi && \
 
 # install misc. gui progs
-$install firefox chromium-browser alacritty flameshot redshift dmenu ranger xmodmap tmux delta zoxide xinput playerctl thunar google-noto-emoji-color-fonts && \
+$install firefox chromium-browser alacritty flameshot redshift dmenu ranger xmodmap tmux delta zoxide xinput playerctl thunar google-noto-emoji-color-fonts cava && \
 
-# install rofi, xclip, bat
-$install rofi xclip bat && \
+# install rofi, xclip, bat, fd (fzedit's file listing is built on fd)
+$install rofi xclip bat fd-find && \
 if ! command -v clipmenu >/dev/null 2>&1; then
     $install libXfixes-devel && \
     clone_if_not_exists https://github.com/cdown/clipmenu /usr/local/src/clipmenu --sudo && \
@@ -280,7 +314,9 @@ if ! command -v eww >/dev/null 2>&1; then
     cd $HOME/dev/eww && \
     # --locked: dbusmenu-glib 0.1.0 is broken with glib>=0.20 (https://github.com/ralismark/dbusmenu-rs/issues/3)
     # eww's Cargo.lock pins glib to 0.18.5 which works. Remove --locked once dbusmenu-glib is fixed.
-    cargo build --release --locked --no-default-features --features x11 && \
+    # DEFAULT features = x11 + wayland: one binary that auto-detects the session
+    # (X11 under xmonad, Wayland under Hyprland). Do NOT pass --no-default-features.
+    cargo build --release --locked && \
     mkdir -p $HOME/.cargo/bin && \
     cp target/release/eww $HOME/.cargo/bin/
 fi && \
