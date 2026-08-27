@@ -373,9 +373,6 @@ $install gdal && \
 # pamixer: one process per HUD tick instead of four, and fixes the mute indicator
 $install pamixer && \
 
-# duperemove (btrfs dedupe)
-$install duperemove && \
-
 # --- Wayland / Hyprland session (see reference: lionheartp COPR, not solopasha, on aarch64) ---
 sudo dnf copr enable lionheartp/Hyprland -y && \
 $install hyprland hypridle hyprlock xdg-desktop-portal-hyprland wl-clipboard && \
