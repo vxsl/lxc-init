@@ -16,8 +16,9 @@ clone_if_not_exists() {
 }
 
 
-name="Kyle Grimsrud-Manz"
-email="kylegm@urbanlogiq.com"
+# Git identity: override via GIT_NAME/GIT_EMAIL env vars before running.
+name="${GIT_NAME:-$(git config --global user.name || echo "Your Name")}"
+email="${GIT_EMAIL:-$(git config --global user.email || echo "you@example.com")}"
 update="sudo dnf update"
 install="sudo dnf install -yq"
 gdm_conf="/etc/gdm/custom.conf"
