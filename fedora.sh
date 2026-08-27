@@ -313,7 +313,7 @@ if [ ! -f /var/lib/widevine/libwidevinecdm.so ]; then
 fi && \
 
 # install misc. gui progs
-$install firefox chromium-browser alacritty flameshot redshift dmenu ranger xmodmap tmux delta zoxide xinput playerctl thunar google-noto-emoji-color-fonts cava && \
+$install firefox chromium-browser alacritty flameshot redshift dmenu ranger xmodmap tmux delta zoxide xinput playerctl thunar google-noto-emoji-color-fonts && \
 
 # install rofi, xclip, bat, fd (fzedit's file listing is built on fd)
 $install rofi xclip bat fd-find && \
@@ -352,6 +352,39 @@ sudo dnf copr enable lihaohong/yazi -y && $install yazi && \
 
 # install btm
 sudo dnf copr enable atim/bottom -y && $install bottom && \
+
+# --- added by dotfiles audit 2026-08-27: installed by hand, previously un-provisioned ---
+
+# build/toolchain deps picked up along the way
+$install cmake lld && \
+
+# pyenv build deps (python builds fail without these)
+$install sqlite-devel tk-devel readline-devel && \
+
+# node-canvas / librsvg build deps
+$install librsvg2-devel && \
+
+# pre-commit (used by work repos' hooks)
+$install pre-commit && \
+
+# gdal (geospatial CLI, used for ad-hoc data work)
+$install gdal && \
+
+# pamixer: one process per HUD tick instead of four, and fixes the mute indicator
+$install pamixer && \
+
+# duperemove (btrfs dedupe)
+$install duperemove && \
+
+# --- Wayland / Hyprland session (see reference: lionheartp COPR, not solopasha, on aarch64) ---
+sudo dnf copr enable lionheartp/Hyprland -y && \
+$install hyprland hypridle hyprlock xdg-desktop-portal-hyprland wl-clipboard && \
+
+# --- custom systemd user units (shipped in .dotfiles/xdg-home/.config/systemd/user) ---
+systemctl --user daemon-reload && \
+for u in battery-mode-watcher.service eww-audio-state.service eww-power-state.service slack-react-notify.service; do
+    systemctl --user enable "$u" 2>/dev/null || echo "  (skip: $u not present)"
+done && \
 
 # source .profile
 source $HOME/.profile && \
