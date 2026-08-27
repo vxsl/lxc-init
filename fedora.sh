@@ -122,9 +122,24 @@ fi && \
 # fix X11 lag on MacBook internal display: force 60Hz via lightdm display-setup-script.
 # X11 defaults to EDID preferred mode (120Hz on eDP-1); Apple DCP overhead at 120Hz
 # causes input/render lag that doesn't appear on HDMI (60Hz default).
+#
+# The DISPLAY guard is load-bearing: lightdm runs this as root before opening the
+# PAM session and aborts the session if it exits non-zero. Wayland sessions have no
+# DISPLAY, so a bare xrandr exits 1 and every Hyprland/sway/GNOME login silently
+# bounces back to the greeter (only X sessions like xmonad would start).
+#
+# Keep this byte-identical to .dotfiles/etc/lightdm/display-setup.sh — setup-stow.sh
+# below runs `stow --adopt -t /etc etc`, which moves whatever is already on disk into
+# the repo. If the two drift, this copy wins and dirties the dotfiles checkout.
 sudo tee /etc/lightdm/display-setup.sh > /dev/null <<'DISPLAY_SETUP'
 #!/bin/sh
+# LightDM runs this as root once the seat's display server is ready, and aborts
+# the session if it exits non-zero. Wayland sessions have no DISPLAY, so an
+# unguarded xrandr here fails and bounces you straight back to the greeter.
+[ -n "$DISPLAY" ] || exit 0
+
 xrandr --output eDP-1 --mode 3024x1890 --rate 60
+exit 0
 DISPLAY_SETUP
 sudo chmod +x /etc/lightdm/display-setup.sh && \
 if grep -q "^display-setup-script=" /etc/lightdm/lightdm.conf 2>/dev/null; then
