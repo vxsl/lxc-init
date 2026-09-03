@@ -156,9 +156,19 @@ $install xdotool pactl && \
 clone_if_not_exists https://github.com/vxsl/bin $HOME/bin && \
 cd $HOME/bin && \
 (git checkout $BRANCH 2>/dev/null || git checkout --track origin/$BRANCH) && \
-# dev-workflow-tools is a submodule of ~/bin; without this, fzedit/rr/oneshot
-# and friends are an empty directory on a fresh box.
-git submodule update --init --recursive && \
+# dev-workflow-tools and work-arcs are submodules of ~/bin; without this,
+# fzedit/rr/oneshot/arcs and friends are empty directories on a fresh box.
+#
+# work-arcs is PRIVATE, unlike everything else here, so this step needs
+# credentials. Run `gh auth login` first; without it the work-arcs submodule
+# fails to clone and the arcs commands are missing while the rest succeeds.
+if ! gh auth status >/dev/null 2>&1; then
+    echo "WARNING: not logged in to GitHub. The private work-arcs submodule will"
+    echo "         not clone. Run 'gh auth login', then re-run:"
+    echo "         git -C \"$HOME/bin\" submodule update --init --recursive"
+fi
+git submodule update --init --recursive || \
+    echo "WARNING: a submodule failed to clone (work-arcs is private -- see above)"
 
 # install dotfiles
 $install dunst nitrogen arandr xautolock xsetroot xclip xwininfo parallel xdg-desktop-portal-gtk && \
@@ -382,6 +392,21 @@ systemctl --user daemon-reload && \
 for u in battery-mode-watcher.service eww-audio-state.service eww-power-state.service slack-react-notify.service; do
     systemctl --user enable "$u" 2>/dev/null || echo "  (skip: $u not present)"
 done && \
+
+# Timers whose unit files are shipped inside their own repos rather than the
+# dotfiles, and are normally deployed by the tool's own --install-timer. Install
+# them that way so ExecStart points at this machine's checkout, not a literal
+# path baked in somewhere else.
+"$HOME/bin/work-arcs/bin/arcs-refresh" --install-timer 2>/dev/null \
+    || echo "  (skip: arcs-refresh --install-timer, work-arcs not checked out)"
+"$HOME/bin/work-arcs/bin/arc-standup-notify" --install-timer 2>/dev/null \
+    || echo "  (skip: arc-standup-notify --install-timer)"
+"$HOME/bin/dev-workflow-tools/bin/wt-gc" --install-timer 2>/dev/null \
+    || echo "  (skip: wt-gc --install-timer)"
+
+# doze: the one privileged knob lives in /usr/local/sbin, installed by its own
+# script so the sudoers/capability side stays in one place.
+sudo "$HOME/bin/doze-install" 2>/dev/null || echo "  (skip: doze-install -- optional, doze works without it)"
 
 # source .profile
 source $HOME/.profile && \
